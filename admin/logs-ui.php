@@ -2,7 +2,7 @@
 if (!defined('ABSPATH')) exit;
 
 function kcb_mpesa_render_logs_ui() {
-    echo '<div class="wrap"><h1>M-Pesa Callback Logs</h1>';
+    echo '<div class="wrap"><h1>KCB M-Pesa Logs</h1>';
     $log_path = WP_CONTENT_DIR . '/mpesa-callback-log.txt';
 
     if (file_exists($log_path)) {

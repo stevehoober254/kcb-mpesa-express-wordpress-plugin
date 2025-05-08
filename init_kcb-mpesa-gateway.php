@@ -8,14 +8,22 @@
 
 if (!defined('ABSPATH')) exit;
 
-add_filter('woocommerce_payment_gateways', 'kcb_add_gateway_class');
-function kcb_add_gateway_class($gateways) {
-    $gateways[] = 'WC_KCB_Mpesa_Gateway';
-    return $gateways;
+// Ensure WooCommerce is active
+if (!class_exists('WooCommerce')) {
+    add_action('admin_notices', function () {
+        echo '<div class="notice notice-error"><p><strong>KCB M-Pesa Gateway:</strong> WooCommerce must be installed and active.</p></div>';
+    });
+    return;
 }
 
-add_action('plugins_loaded', 'kcb_init_gateway_class');
-function kcb_init_gateway_class() {
+// Register payment gateway
+add_filter('woocommerce_payment_gateways', function ($gateways) {
+    $gateways[] = 'WC_KCB_Mpesa_Gateway';
+    return $gateways;
+});
+
+// Define gateway class
+if (!class_exists('WC_KCB_Mpesa_Gateway') && class_exists('WC_Payment_Gateway')) {
     class WC_KCB_Mpesa_Gateway extends WC_Payment_Gateway {
 
         public function __construct() {
@@ -35,27 +43,27 @@ function kcb_init_gateway_class() {
         }
 
         public function init_form_fields() {
-            $this->form_fields = array(
-                'enabled' => array(
+            $this->form_fields = [
+                'enabled' => [
                     'title' => 'Enable/Disable',
                     'type' => 'checkbox',
                     'label' => 'Enable KCB M-Pesa Payment',
                     'default' => 'yes'
-                ),
-                'title' => array(
+                ],
+                'title' => [
                     'title' => 'Title',
                     'type' => 'text',
                     'default' => 'M-Pesa via KCB'
-                ),
-                'consumer_key' => array(
+                ],
+                'consumer_key' => [
                     'title' => 'Consumer Key',
                     'type' => 'text'
-                ),
-                'consumer_secret' => array(
+                ],
+                'consumer_secret' => [
                     'title' => 'Consumer Secret',
                     'type' => 'password'
-                )
-            );
+                ]
+            ];
         }
 
         public function process_payment($order_id) {
@@ -73,14 +81,14 @@ function kcb_init_gateway_class() {
 
             if (is_wp_error($token_response)) {
                 wc_add_notice('Payment failed: Unable to authenticate.', 'error');
-                return;
+                return ['result' => 'fail', 'redirect' => ''];
             }
 
             $token_body = json_decode(wp_remote_retrieve_body($token_response), true);
             $access_token = $token_body['access_token'] ?? '';
             if (!$access_token) {
                 wc_add_notice('Payment failed: Token missing.', 'error');
-                return;
+                return ['result' => 'fail', 'redirect' => ''];
             }
 
             $stk_payload = [
@@ -108,17 +116,14 @@ function kcb_init_gateway_class() {
 
             if (is_wp_error($stk_response)) {
                 wc_add_notice('Payment failed: STK push error.', 'error');
-                return;
+                return ['result' => 'fail', 'redirect' => ''];
             }
 
             $order->update_status('on-hold', 'Awaiting M-Pesa payment confirmation');
             wc_reduce_stock_levels($order_id);
             WC()->cart->empty_cart();
 
-            return [
-                'result' => 'success',
-                'redirect' => $this->get_return_url($order)
-            ];
+            return ['result' => 'success', 'redirect' => $this->get_return_url($order)];
         }
     }
 }
@@ -154,7 +159,6 @@ add_action('template_redirect', function () {
             } else {
                 $order->update_status('failed', 'M-Pesa payment failed.');
 
-                // Email admin on payment failure
                 wp_mail(
                     get_option('admin_email'),
                     'M-Pesa Payment Failed for Order #' . $order_id,
@@ -168,7 +172,7 @@ add_action('template_redirect', function () {
     }
 });
 
-// Add admin page to view, download, and clear logs
+// Admin log view and controls
 add_action('admin_menu', function () {
     add_menu_page(
         'M-Pesa Logs',

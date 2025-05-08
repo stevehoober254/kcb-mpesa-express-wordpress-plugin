@@ -35,9 +35,21 @@ add_filter('woocommerce_get_settings_pages', function ($settings) {
                     'desc_tip' => true
                 ],
                 [
+                    'title' => 'Telegram Bot Token',
+                    'id' => 'kcb_mpesa_telegram_token',
+                    'type' => 'text',
+                    'desc' => 'Enter your Telegram Bot token'
+                ],
+                [
+                    'title' => 'Telegram Chat ID',
+                    'id' => 'kcb_mpesa_telegram_chat_id',
+                    'type' => 'text',
+                    'desc' => 'Enter the chat ID for the bot to message'
+                ],
+                [
                     'type' => 'sectionend',
                     'id' => 'kcb_mpesa_license_section'
-                ]
+                ],
             ];
         }
     };
@@ -48,6 +60,8 @@ require_once __DIR__ . '/includes/class-kcb-gateway-base.php';
 
 if (KCB_MPESA_PRO && include __DIR__ . '/pro/license-check.php') {
     require_once __DIR__ . '/includes/class-kcb-gateway-pro.php';
+    require_once __DIR__ . '/includes/services/class-telegram-notifier.php';
+
 } else {
     require_once __DIR__ . '/includes/class-kcb-gateway-free.php';
 } ?>

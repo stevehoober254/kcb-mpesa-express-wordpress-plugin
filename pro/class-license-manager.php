@@ -8,12 +8,18 @@ class KCB_License_Manager {
         $this->license_key = get_option('kcb_mpesa_license_key');
     }
 
-    public function is_valid() {
-        $valid_keys = ['KCBPRO-2025-VALID'];
+    /**
+     * Check if the current license key is valid.
+     */
+    public function is_valid(): bool {
+        $valid_keys = ['KCBPRO-2025-VALID']; // In production, validate via API or license server
         return in_array($this->license_key, $valid_keys);
     }
 
-    public function get_message() {
+    /**
+     * Return a human-readable license status message.
+     */
+    public function get_message(): string {
         return $this->is_valid()
             ? '✅ License is valid.'
             : '❌ License is invalid.';
